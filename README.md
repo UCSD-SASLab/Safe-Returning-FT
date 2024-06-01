@@ -16,3 +16,5 @@ planner model with the RRT planner.
 - `hj_reachability`: https://github.com/HJReachability/helperOC
 - `Control-Lyapunov-Value-Functions`: https://github.com/ZG0327/Control-Lyapunov-Value-Functions
 - `Level Set Methods Toolbox` by Ian Mitchell: https://www.cs.ubc.ca/~mitchell/ToolboxLS/.
+- `Multiple Rapidly-exploring Random Tree (RRT)` by Gavin (already contained in the Online/RRT): https://www.mathworks.com/matlabcentral/fileexchange/21443-multiple-rapidly-exploring-random-tree-rrt
+  
