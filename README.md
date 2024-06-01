@@ -15,3 +15,4 @@ planner model with the RRT planner.
 
 - `hj_reachability`: https://github.com/HJReachability/helperOC
 - `Control-Lyapunov-Value-Functions`: https://github.com/ZG0327/Control-Lyapunov-Value-Functions
+- `Level Set Methods Toolbox` by Ian Mitchell: https://www.cs.ubc.ca/~mitchell/ToolboxLS/.
