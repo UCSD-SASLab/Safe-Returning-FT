@@ -40,8 +40,8 @@ senseRange = 3;
 [g1D_X, V_X] = proj(sD_X.grid, dataX, [0 1 1 1],'min');
 [g1D_Z, V_Z] = proj(sD_Z.grid, dataZ, [0 1],'min');
 
-[SCIS_X, TEB_X] = compute_level_set_radius(g1D_X, V_X, 0.01);
-[SCIS_Z, TEB_Z] = compute_level_set_radius(g1D_Z, V_Z, 0.01);
+[SCIS_X, TEB_X] = compute_level_set_radius(g1D_X, V_X, 0.05);
+[SCIS_Z, TEB_Z] = compute_level_set_radius(g1D_Z, V_Z, 0.05);
 TEB = max(TEB_X, TEB_Z);
 %% Before Looping
 uMode = 'min';
