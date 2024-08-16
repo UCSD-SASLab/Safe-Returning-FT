@@ -20,7 +20,7 @@ function SenseMap = SenseEnv(x,y,senseRange,Map,TEB,dim)
     % r = r_x'.^2*r_y.^2;
     % circle_ind = find(r<=senseRange^2);
     sense_x = [ max(1,x-senseRange):min(Map.xMax,x+senseRange)];
-    sense_y = [ max(1,y-senseRange):min(Map.yMax,x+senseRange)];
+    sense_y = [ max(1,y-senseRange):min(Map.yMax,y+senseRange)];
     g = Map.ground;
     g(sense_x,sense_y) = 2;
 
