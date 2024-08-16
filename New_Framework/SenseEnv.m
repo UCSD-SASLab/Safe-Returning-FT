@@ -1,8 +1,10 @@
-function SenseMap = SenseEnv(x,y,senseRange,Map,TEB,dim)
+function [SenseMap,old_map] = SenseEnv(x,y,senseRange,Map,TEB,dim)
     % x,y: current tracker location
     % Map: the grounnd truth map that is unknow to the system
     % TEB: 3 or 2-dim vector, specify size of TEB on x/y/(z) dims 
-
+    
+    old_map = Map;
+    SenseMap = Map;
     if ~isrow(TEB)
         TEB = TEB';
     end
