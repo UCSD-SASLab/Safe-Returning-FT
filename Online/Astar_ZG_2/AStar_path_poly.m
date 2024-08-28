@@ -11,8 +11,10 @@ MAP=2*(ones(max_x,max_y));
 % Init_y = 1.2;
 Init_x = floor(Init_x);
 Init_y = floor(Init_y);
-dx = round(cTEB(1))
-dy = round(cTEB(2))
+% dx = 1;
+% dy= 1; 
+dx = round(cTEB(1));
+dy = round(cTEB(2));
 % define target
 Target_x = 16;
 Target_y = 16;
@@ -192,7 +194,7 @@ end
 Optimal_path = flip(Optimal_path);
 Optimal_path = [Init_x,Init_y;Optimal_path];
 newStates = [];
-steps = 81;
+steps = 71;
 for i = 1:length(Optimal_path)-1
     if Optimal_path(i,1) == Optimal_path(i+1,1)
         temp_x = ones(1,steps)*Optimal_path(i,1);

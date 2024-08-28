@@ -3,7 +3,7 @@ close all
 clc
 % Problem setup
 % start = [8;2];
-start = [3;3]/3;
+start = [1;1];
 goal = [16;16];
 small = 0.1;
 virt_v = 0.5;
@@ -19,20 +19,23 @@ YDims = 2;
 
 
 % matrix to compare position states (virt vs. true)
-Q = zeros(4,2);
+Q = zeros(3,2);
 Q(1,1) = 1;
 Q(2,2) = 1;
 
 vis = true;
 
-% filename = 'V_g=0.1_5s_u_[pi2_0.3=d]_grid_-3_pos.mat';
-filename = 'V_4D_g=0.1_5s_u_[pi_0.3=d]_grid_-3_Q_pos.mat';
+% filename = 'V_3D_g=0.1_10s_u_[2_0.5=d]_grid_-3_pos.mat';
 gamma = 0.1;
+filename = sprintf('V_3D_g=%.1f_10s_u_[2_0.5=d]_grid_-5_pos.mat', gamma);
+% filename = sprintf('V_3D_g=%.1f_10s_u_[2_0.5=d]_grid_-5_pos.mat', gamma);
 dataX = load(filename, 'dataX').dataX;
 g = load(filename, 'g').g;
 TEB = load(filename, 'TEB').TEB;
-% Table_R_L = importdata('Table_R_L_0.1_pos.mat');
-Table_R_L = importdata('Table_4D_0.1_grid_-3_Q_pos.mat');
+
+% table_name = sprintf('Table_3D_%.1f_grid_-5_pos.mat', gamma);
+table_name = sprintf('Table_3D_%.1f_grid_-5_pos.mat', gamma);
+Table_R_L = importdata(table_name);
 deriv = computeGradients(g,dataX);
 senseRange = 3;
 
@@ -105,21 +108,25 @@ if vis
     hold on
     plot(goal(1), goal(2), "pentagram", 'MarkerFaceColor', 'r',...
         'MarkerEdgeColor','r', 'MarkerSize', Marker_size);
-    axis([0 max_x+6 0 max_y+6])
-    xticks(0:1:max_x+6)
-    yticks(1:1:max_y+6)
+        axis([0 max_x+1 0 max_y+1])
+    xticks(1:1:max_x+1)
+    % yticks(1:1:max_y+1)
+    axis([-2 max_x+10 -2 max_y+10])
+    xticks(-1:1:max_x+10)
+    yticks(-1:1:max_y+10)
+    grid on
 end
 
 % set initial states to zero
-start_x = zeros(4,1);
+start_x = zeros(3,1);
 start_x([1 2]) = start;
 virt_x = start;
 
 % Create real quadrotor system
 % rl_ui = [2 4];
-trueQuad = Plane4D(start_x, pi/2, [-2,2], [0.3,0.3]);
+trueQuad = Dubins3D(start_x, pi/2, [0,2], [0.5,0.5,0]);
 
-u_cell = trueQuad.optCtrl([], [], deriv, uMode);
+u_cell = trueQuad.optCtrl([], g.xs, deriv, uMode);
 u1 = u_cell{1};
 u2 = u_cell{2};
 % % define when to switch from safety control to performance control
@@ -133,10 +140,10 @@ iter = 0;
 sensed_new_1 = false;
 true_x_last = trueQuad.x;
 
-video_title = sprintf('Q4D_Q2D_SRF_g=0.1_Q_pos_[%s]_2', strjoin(string(start)));
+video_title = sprintf('Q3D_Q2D_SRF_g=%.1f_pos_[%s]_grid_-5_dx=1_nJ', gamma, strjoin(string(start)));
 writerObj = VideoWriter(video_title, 'MPEG-4'); % Name it.
-writerObj.FrameRate = 30; % How many frames per second.
-open(writerObj);
+writerObj.FrameRate = 20; % How many frames per second.
+% open(writerObj);
 
 rel_traj = [];
 tracker_traj = [];
@@ -154,6 +161,7 @@ trackErr = [TEB_X,TEB_Y];
 %%
 global_start = tic; % Time entire simulation
 while norm(trueQuad.x([1 2]) - goal) > 0.3
+       
     iter = iter + 1
 
     %     if iter == 1
@@ -256,7 +264,8 @@ while norm(trueQuad.x([1 2]) - goal) > 0.3
         RpFlag = 1;
     end
       
-    if level_rel > small+0.3
+    % if level_rel > 0.1 + min(dataX,[],'all')
+    if level_rel > small && max(abs(rel_x(1:2)))>= 1.4571
         %        &&... shortest_Dist >= senseRange
         JFlag = 1;
         if isequal(trueQuad.x, true_x_last)
@@ -264,7 +273,8 @@ while norm(trueQuad.x([1 2]) - goal) > 0.3
         else
             plot_jump = 1;
         end
-    elseif level_rel <= small+0.3
+    % elseif level_rel <= 0.1 + min(dataX,[],'all')
+    else
         if shortest_Dist >= senseRange
             JFlag = 1;
             %             plot_jump = 1;
@@ -273,6 +283,10 @@ while norm(trueQuad.x([1 2]) - goal) > 0.3
             % plot_replan = 1;
         end
     end
+    % if trueQuad.x(1)>=13
+    %     JFlag = 0;
+    % end
+
 % tic
 [virt_x, JFlag, RpFlag, newStates, plot_jump, plot_replan] = Safe_Returning_Astar_2D_poly(trueQuad,...
     virt_x, level_set, obs_map, senseRange, goal,newStates,...
@@ -304,20 +318,21 @@ while norm(trueQuad.x([1 2]) - goal) > 0.3
     V_iter = eval_u(g,  dataX, rel_x);
     % uX = onlineQP(g, V_iter, deriv_x, rel_x, gamma, dt_online);
 
-    % if trueQuad.x(1)>3.055 && deriv_x(4) >=0
+    % if iter > 50 && abs(pX(4)) <=1e-3
     %     keyboard
     % end
-
-    uX = trueQuad.optCtrl([], rel_x, deriv_x, uMode);
-    uX = cell2mat(uX');
-    u_signal = [u_signal; uX];
+        %     u_x = eval_u(g,u1,rel_x);
+        % u_y = eval_u(g,u2,rel_x);
+        % u = [u_x,u_y];
+    uX = eval_u(g,u_cell,rel_x)
+    % uX = trueQuad.optCtrl([], rel_x, deriv_x, uMode);
+    % uX = cell2mat(uX');
+    u_signal = [u_signal; uX'];
     % Find optimal control of relative system (no performance control)
     % if isequal(rel_x, zeros(4,1))
     %     u= [0, 0];
     % else
-        % u_x = eval_u(g,u1,rel_x);
-        % u_y = eval_u(g,u2,rel_x);
-        % u = [u_x,u_y];
+
     % if ~isequal(u, uX)
     %     keyboard
     % end
@@ -327,34 +342,38 @@ while norm(trueQuad.x([1 2]) - goal) > 0.3
         % d = sD_X.dynSys.dMin(1:2) + rand(2,1).*(sD_X.dynSys.dMax(1:2)...
             % - sD_X.dynSys.dMin(1:2));
     % d = [-0.1; -0.1]+ rand(2,1).*[0.2; 0.2];
-    d = [0;0];
+    d = [0;0;0];
     %     d(1) = d(1) + 0.1;
 
     % 2. update state of true vehicle
+    rel_x =  trueQuad.x - Q*virt_x;
     trueQuad.updateState(uX, dt_online, [], d);
     trueQuad.x([1 2])
     true_x_last = trueQuad.x;
-    rel_x =  trueQuad.x - Q*virt_x;
-    rel_traj = [rel_traj; rel_x'];
+    rel_traj = [rel_traj; rel_x];
     tracker_traj = [tracker_traj; trueQuad.x'];
     % current_state = trueQuad.x([1 2])
     value = eval_u(g,dataX,trueQuad.x - Q*virt_x)
     value_traj = [value_traj; value];
     % 
     % if iter > 600 && tracker_traj(iter, 2) <= tracker_traj(iter-1, 2)
-        % keyboard
+    %     % keyboard
+    % end
+    % 
+    % if trueQuad.x(1) > 14 && norm(trueQuad.x'-tracker_traj(iter-2,1:3))<=0.1
+    %     break
     % end
     %% Virtual System Block
     % Visualize
-    showvideo = 1;
-    % writerObj = [];
+    showvideo = 0;
+    writerObj = [];
     % tic
     if iter == 1
-        [hV, box_map] = visualize_2D_Plane4D(obs_map, [], trueQuad, virt_x, cTEB,...
-            writerObj, iter, [], showvideo, RpFlag);
+        [hV, hLS] = visualize_2D_Car3D(obs_map, trueQuad, virt_x, cTEB,...
+            writerObj, iter, [], [], showvideo , RpFlag, g, dataX, level);
     else
-        [hV, box_map] = visualize_2D_Plane4D(obs_map, box_map, trueQuad, virt_x, cTEB,...
-            writerObj, iter, hV, showvideo, RpFlag);
+        [hV, hLS] = visualize_2D_Car3D(obs_map, trueQuad, virt_x, cTEB,...
+            writerObj, iter, hV, hLS, showvideo , RpFlag, g, dataX, level);
     end
     toc
     % if iter == 1
@@ -365,6 +384,7 @@ while norm(trueQuad.x([1 2]) - goal) > 0.3
     %         showvideo , JFlag);
     % end
 end
+close(writerObj);
 comp_time = toc(global_start);
 % comp_time = lookup_time;
 traj_time = iter*dt_online
@@ -372,6 +392,6 @@ traj_time = iter*dt_online
 % if traj_time>=40
 %     error('Quadrotor is too far from the goal!')
 % end
-close(writerObj);
+
 % filename = 'SRF_dist_3_obs_overlap_sense_1';
 % save(filename, 'planner_traj', 'tracker_traj','traj_time');

@@ -5,6 +5,7 @@ classdef ObstacleMapAstar_2D_rectangle < handle
         yv; % y vertices of polygons, counter-clock wise, each row represents the same polygon
         local_obs; % indices of sensed obstacles, reprenting rows in xv and yv
         dx; % sTEB_x to be padded
+        dr; % for 3D car whose TEB is a circle
         dy; % sTEB_y to be padded
         padded_obs; % indices of padded obstacles, reprenting rows in xv and yv
         num_obs; % the number of global obstacles
@@ -19,6 +20,7 @@ classdef ObstacleMapAstar_2D_rectangle < handle
 
         % same for padded obs
         hP
+        hP_O
 
     end
 
@@ -82,7 +84,7 @@ classdef ObstacleMapAstar_2D_rectangle < handle
 
 
         %% ObstaclePlot
-        function plotPadded(obj, color, linestyle, linewidth)
+        function plotPadded(obj, color, linestyle, linewidth, dr)
             if nargin < 2
                 color = '#D41159';
             end
@@ -92,75 +94,100 @@ classdef ObstacleMapAstar_2D_rectangle < handle
             if nargin < 4
                 linewidth = 3;
             end
+            if nargin < 5
+                dr = [];
+            end
             if ~isempty(obj.hP)
                 delete(obj.hP)
             end
+            if ~isempty(obj.hP_O)
+                delete(obj.hP_O)
+            end
             seen = find(obj.seen_obs==1);
             if ~isempty(seen)
-                aug_x = obj.dx(1,:);
-                aug_y = obj.dy(2,:);
-                xv_aug = obj.xv(seen,:) + aug_x;
-                yv_aug = obj.yv(seen,:) + aug_y;
-                %       figure
+                if isempty(dr)
+                    aug_x = obj.dx(1,:);
+                    aug_y = obj.dy(2,:);
+                    xv_aug = obj.xv(seen,:) + aug_x;
+                    yv_aug = obj.yv(seen,:) + aug_y;
+                    %       figure
 
-                aug_map = polyshape(reshape(mat2cell(xv_aug,ones(1,size(xv_aug,1))), 1, []),...
-                    reshape(mat2cell(yv_aug,ones(1,size(yv_aug,1))), 1, []));
-                obj.hP = plot(aug_map,'FaceAlpha',0,'EdgeColor',color,...
+                    aug_map = polyshape(reshape(mat2cell(xv_aug,ones(1,size(xv_aug,1))), 1, []),...
+                        reshape(mat2cell(yv_aug,ones(1,size(yv_aug,1))), 1, []));
+                    obj.hP = plot(aug_map,'FaceAlpha',0,'EdgeColor',color,...
+                        'LineWidth', linewidth, 'LineStyle',linestyle);
+                else
+                    obj.hP_O = nan(1,length(seen));
+                    for i = 1:length(seen)
+                        center = [(obj.xv(seen(i),1) + obj.xv(seen(i),2))/2,...
+                                    (obj.yv(seen(i),2) + obj.yv(seen(i),3))/2];
+                        temp(i) = rectangle('Position',[center-dr, dr*2, dr*2],...
+                            'Curvature',[1,1], 'FaceAlpha',0,'EdgeColor',color,...
+                        'LineWidth', linewidth, 'LineStyle',linestyle);
+                                        hold on
+                        % if i == 1
+                        %     obj.hP = temp(i);
+                        % else
+                        %     obj.hP = copyobj(obj.hP, temp(i));
+                        % end
+                          % obj.hP = copyobj(obj.hP, temp);              
+                    end
+                    obj.hP_O = temp;
+                end
+
+            end
+        end
+            function plotGlobal(obj, color, linestyle, linewidth, facealpha)
+                if nargin < 2
+                    color = '#D41159';
+                end
+                if nargin < 3
+                    linestyle = 'none';
+                end
+                if nargin < 4
+                    linewidth = 1;
+                end
+                if nargin < 5
+                    facealpha = 0.7;
+                end
+                if ~isempty(obj.hG)
+                    delete(obj.hG)
+                end
+                global_map = polyshape(reshape(mat2cell(obj.xv,ones(1,size(obj.xv,1))), 1, []),...
+                    reshape(mat2cell(obj.yv,ones(1,size(obj.yv,1))), 1, []));
+                obj.hG = plot(global_map,'FaceColor', color,'FaceAlpha',facealpha,'EdgeColor',color,...
                     'LineWidth', linewidth, 'LineStyle',linestyle);
+                % obj.hL = gcf;
+                % obj.hG = gcf;
             end
+            function plotLocal(obj, sTEB_X, sTEB_Y)
+                if ~isempty(obj.hL)
+                    delete(obj.hL)
+                end
+                % Local obstacles
+                xv_seen = self.xv(size(obj.local_obs),:);
+                yv_seen = self.yv(size(obj.local_obs),:);
+                local_map = polyshape(reshape(mat2cell(xv_seen,ones(1,size(xv_seen,1))), 1, []),...
+                    reshape(mat2cell(yv_seen,ones(1,size(yv_seen,1))), 1, []));
+                plot(local_map,'FaceColor', '#D41159','FaceAlpha',0.7,'EdgeColor','#D41159',...
+                    'LineWidth', 1);
+                obj.hL = gcf;
+            end
+            %
+            %     function plotPadded(obj)
+            %       if nargin < 2
+            %         color = 'g';
+            %       end
+            %
+            %       % Augmented obstacles
+            %       coords = get_obs_coords_for_plot(obj.padded_obs);
+            %
+            %       if ~isempty(obj.hP)
+            %         delete(obj.hP)
+            %       end
+            %
+            %       obj.hP = fill3(coords{:}, color, 'FaceAlpha', 0.05, 'LineStyle', 'none');
+        end
 
-        end
-        function plotGlobal(obj, color, linestyle, linewidth, facealpha)
-            if nargin < 2
-                color = '#D41159';
-            end
-            if nargin < 3
-                linestyle = 'none';
-            end
-            if nargin < 4
-                linewidth = 1;
-            end
-            if nargin < 5
-                facealpha = 0.7;
-            end
-            if ~isempty(obj.hG)
-                delete(obj.hG)
-            end
-            global_map = polyshape(reshape(mat2cell(obj.xv,ones(1,size(obj.xv,1))), 1, []),...
-                reshape(mat2cell(obj.yv,ones(1,size(obj.yv,1))), 1, []));
-            obj.hG = plot(global_map,'FaceColor', color,'FaceAlpha',facealpha,'EdgeColor',color,...
-                'LineWidth', linewidth, 'LineStyle',linestyle);
-            % obj.hL = gcf;
-            % obj.hG = gcf;
-        end
-        function plotLocal(obj, sTEB_X, sTEB_Y)
-            if ~isempty(obj.hL)
-                delete(obj.hL)
-            end
-            % Local obstacles
-            xv_seen = self.xv(size(obj.local_obs),:);
-            yv_seen = self.yv(size(obj.local_obs),:);
-            local_map = polyshape(reshape(mat2cell(xv_seen,ones(1,size(xv_seen,1))), 1, []),...
-                reshape(mat2cell(yv_seen,ones(1,size(yv_seen,1))), 1, []));
-            plot(local_map,'FaceColor', '#D41159','FaceAlpha',0.7,'EdgeColor','#D41159',...
-                'LineWidth', 1);
-            obj.hL = gcf;
-        end
-        %
-        %     function plotPadded(obj)
-        %       if nargin < 2
-        %         color = 'g';
-        %       end
-        %
-        %       % Augmented obstacles
-        %       coords = get_obs_coords_for_plot(obj.padded_obs);
-        %
-        %       if ~isempty(obj.hP)
-        %         delete(obj.hP)
-        %       end
-        %
-        %       obj.hP = fill3(coords{:}, color, 'FaceAlpha', 0.05, 'LineStyle', 'none');
+        % END OF METHODS
     end
-
-    % END OF METHODS
-end
